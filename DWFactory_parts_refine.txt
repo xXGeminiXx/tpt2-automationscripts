@@ -1,0 +1,85 @@
+:name DW.Factory:parts_refine
+:budget_cap max
+
+; Refinery chain A: cable, wire.
+
+:const int MAX_TIER 10
+:const double TGT_CABLE 2000.0
+:const double TGT_WIRE 1300.0
+
+:global int dw_run
+:global int dw_fac_gen
+:global int dw_fac_state
+:global int dw_fac_tier
+:global double dw_fac_need
+:global int dw_fac_err
+:global double dw_fac_err_until
+:global string dw_fac_task
+:global string dw_fac_fail
+
+:local int t
+:local int my_gen
+:local double need
+:local double src
+
+wakeup()
+
+start:
+my_gen = dw_fac_gen
+t = if(t < 1, 1, if(t > MAX_TIER, 1, t))
+
+loop:
+gotoif(end, my_gen != dw_fac_gen || dw_run == 0)
+dw_fac_tier = t
+
+gotoif(do_cable, count("cable", t) < TGT_CABLE)
+gotoif(do_wire, count("wire", t) < TGT_WIRE)
+goto(next_tier)
+
+next_tier:
+t = if(t >= MAX_TIER, 1, t + 1)
+waitframe()
+goto(loop)
+
+do_cable:
+dw_fac_state = 231
+dw_fac_task = "Making cable via Refinery"
+dw_fac_fail = "Refinery busy"
+gotoif(busy, active("refinery"))
+need = min(220.0, TGT_CABLE - count("cable", t))
+need = min(need, 2.0 * count("ingot", t))
+src = ceil(need / 2.0)
+dw_fac_need = src
+dw_fac_fail = "Need ingots"
+gotoif(no_input, src <= 0.)
+dw_fac_err = 0
+dw_fac_fail = ""
+produce("ingot", t, src, "refinery")
+goto(next_tier)
+
+do_wire:
+dw_fac_state = 241
+dw_fac_task = "Making wire via Refinery"
+dw_fac_fail = "Refinery busy"
+gotoif(busy, active("refinery"))
+need = min(180.0, TGT_WIRE - count("wire", t))
+need = min(need, count("cable", t))
+dw_fac_need = need
+dw_fac_fail = "Need cable"
+gotoif(no_input, need <= 0.)
+dw_fac_err = 0
+dw_fac_fail = ""
+produce("cable", t, need, "refinery")
+goto(next_tier)
+
+busy:
+dw_fac_err = 1
+dw_fac_err_until = now() + 10000000.
+goto(next_tier)
+
+no_input:
+dw_fac_err = 2
+dw_fac_err_until = now() + 10000000.
+goto(next_tier)
+
+end:

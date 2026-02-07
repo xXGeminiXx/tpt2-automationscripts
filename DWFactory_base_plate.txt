@@ -1,0 +1,67 @@
+:name DW.Factory:base_plate
+:budget_cap max
+
+; Core chain B: ingot -> plate
+
+:const int MAX_TIER 10
+:const double TGT_PLATE 2400.0
+:const double BATCH 250.0
+
+:global int dw_run
+:global int dw_fac_gen
+:global int dw_fac_state
+:global int dw_fac_tier
+:global double dw_fac_need
+:global int dw_fac_err
+:global double dw_fac_err_until
+:global string dw_fac_task
+:global string dw_fac_fail
+
+:local int t
+:local int my_gen
+:local double need
+
+wakeup()
+
+start:
+my_gen = dw_fac_gen
+t = if(t < 1, 1, if(t > MAX_TIER, 1, t))
+
+loop:
+gotoif(end, my_gen != dw_fac_gen || dw_run == 0)
+dw_fac_tier = t
+
+gotoif(do_plate, count("plate", t) < TGT_PLATE)
+goto(next_tier)
+
+next_tier:
+t = if(t >= MAX_TIER, 1, t + 1)
+waitframe()
+goto(loop)
+
+do_plate:
+dw_fac_state = 131
+dw_fac_task = "Making plates via Presser"
+dw_fac_fail = "Presser busy"
+gotoif(busy, active("presser"))
+need = min(BATCH, TGT_PLATE - count("plate", t))
+need = min(need, count("ingot", t))
+dw_fac_need = need
+dw_fac_fail = "Need ingots"
+gotoif(no_input, need <= 0.)
+dw_fac_err = 0
+dw_fac_fail = ""
+produce("ingot", t, need, "presser")
+goto(next_tier)
+
+busy:
+dw_fac_err = 1
+dw_fac_err_until = now() + 10000000.
+goto(next_tier)
+
+no_input:
+dw_fac_err = 2
+dw_fac_err_until = now() + 10000000.
+goto(next_tier)
+
+end:

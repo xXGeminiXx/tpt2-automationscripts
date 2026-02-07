@@ -1,0 +1,73 @@
+:name DW.Factory:bootstrap
+:budget_cap max
+
+; Bootstrap helper for early factory progression.
+; Purpose: push materials typically needed to get assembler online.
+
+:const double TGT_STACK 600.0
+:const double TGT_DENSE 400.0
+:const double TGT_CABLE 800.0
+:const double TGT_WIRE 700.0
+
+:global string dw_fac_human
+:global string dw_fac_debug
+
+:local double need
+
+wakeup()
+
+start:
+gotoif(do_stack, count("plate.stack", 1) < TGT_STACK)
+gotoif(do_dense, count("plate.dense", 1) < TGT_DENSE)
+gotoif(do_cable, count("cable", 1) < TGT_CABLE)
+gotoif(do_wire, count("wire", 1) < TGT_WIRE)
+gotoif(do_assembler, count("machine.assembler", 1) < 1.0)
+
+dw_fac_human = "<color=#3f3>Bootstrap done: assembler available.</color>"
+dw_fac_debug = "bootstrap:done"
+waitframe()
+goto(start)
+
+do_stack:
+need = min(80.0, TGT_STACK - count("plate.stack", 1))
+dw_fac_human = "<color=#ff4>Bootstrap: crafting stacked plates</color>"
+dw_fac_debug = "bootstrap:stack need=" . need
+craft("plate.stack", 1, need)
+goto(start)
+
+do_dense:
+gotoif(start, active("presser"))
+need = min(80.0, TGT_DENSE - count("plate.dense", 1))
+need = min(need, count("plate.stack", 1))
+gotoif(start, need <= 0.)
+dw_fac_human = "<color=#ff4>Bootstrap: making dense plates</color>"
+dw_fac_debug = "bootstrap:dense need=" . need
+produce("plate.stack", 1, need, "presser")
+goto(start)
+
+do_cable:
+gotoif(start, active("refinery"))
+need = min(120.0, TGT_CABLE - count("cable", 1))
+need = min(need, count("ingot", 1))
+gotoif(start, need <= 0.)
+dw_fac_human = "<color=#ff4>Bootstrap: making cable</color>"
+dw_fac_debug = "bootstrap:cable need=" . need
+produce("ingot", 1, need, "refinery")
+goto(start)
+
+do_wire:
+gotoif(start, active("refinery"))
+need = min(120.0, TGT_WIRE - count("wire", 1))
+need = min(need, count("cable", 1))
+gotoif(start, need <= 0.)
+dw_fac_human = "<color=#ff4>Bootstrap: making wire</color>"
+dw_fac_debug = "bootstrap:wire need=" . need
+produce("cable", 1, need, "refinery")
+goto(start)
+
+do_assembler:
+dw_fac_human = "<color=#f44>Bootstrap: attempting assembler craft (requires unlocked recipe + materials).</color>"
+dw_fac_debug = "bootstrap:assembler try"
+craft("machine.assembler", 1, 1.0)
+waitframe()
+goto(start)

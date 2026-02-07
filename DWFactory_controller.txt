@@ -1,0 +1,23 @@
+:name DW.Factory:controller
+:budget_cap max
+
+; Lightweight control loop that publishes a heartbeat while automation is on.
+
+:global int dw_run
+:global int dw_fac_gen
+:global int dw_fac_heartbeat
+
+:local int my_gen
+
+wakeup()
+
+start:
+my_gen = dw_fac_gen
+
+loop:
+gotoif(end, my_gen != dw_fac_gen || dw_run == 0)
+dw_fac_heartbeat += 1
+waitframe()
+goto(loop)
+
+end:

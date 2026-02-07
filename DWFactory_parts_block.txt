@@ -1,0 +1,80 @@
+:name DW.Factory:parts_block
+:budget_cap max
+
+; Block chain: block, dense block.
+
+:const int MAX_TIER 10
+:const double TGT_BLOCK 600.0
+:const double TGT_DENSE_BLOCK 300.0
+
+:global int dw_run
+:global int dw_fac_gen
+:global int dw_fac_state
+:global int dw_fac_tier
+:global double dw_fac_need
+:global int dw_fac_err
+:global double dw_fac_err_until
+:global string dw_fac_task
+:global string dw_fac_fail
+
+:local int t
+:local int my_gen
+:local double need
+
+wakeup()
+
+start:
+my_gen = dw_fac_gen
+t = if(t < 1, 1, if(t > MAX_TIER, 1, t))
+
+loop:
+gotoif(end, my_gen != dw_fac_gen || dw_run == 0)
+dw_fac_tier = t
+
+gotoif(do_block, count("block", t) < TGT_BLOCK)
+gotoif(do_dense, count("block.dense", t) < TGT_DENSE_BLOCK)
+goto(next_tier)
+
+next_tier:
+t = if(t >= MAX_TIER, 1, t + 1)
+waitframe()
+goto(loop)
+
+do_block:
+dw_fac_state = 411
+dw_fac_task = "Crafting blocks"
+need = min(120.0, TGT_BLOCK - count("block", t))
+dw_fac_need = need
+dw_fac_fail = "Need block materials"
+gotoif(no_input, need <= 0.)
+dw_fac_err = 0
+dw_fac_fail = ""
+craft("block", t, need)
+goto(next_tier)
+
+do_dense:
+dw_fac_state = 421
+dw_fac_task = "Making dense blocks via Boiler"
+dw_fac_fail = "Boiler busy"
+gotoif(busy, active("boiler"))
+need = min(90.0, TGT_DENSE_BLOCK - count("block.dense", t))
+need = min(need, count("block", t))
+dw_fac_need = need
+dw_fac_fail = "Need blocks"
+gotoif(no_input, need <= 0.)
+dw_fac_err = 0
+dw_fac_fail = ""
+produce("block", t, need, "boiler")
+goto(next_tier)
+
+busy:
+dw_fac_err = 1
+dw_fac_err_until = now() + 10000000.
+goto(next_tier)
+
+no_input:
+dw_fac_err = 2
+dw_fac_err_until = now() + 10000000.
+goto(next_tier)
+
+end:

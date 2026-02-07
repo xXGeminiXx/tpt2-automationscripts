@@ -1,0 +1,84 @@
+:name DW.Factory:base
+:budget_cap max
+
+; Core chain A: ore -> dust -> ingot
+
+:const int MAX_TIER 10
+:const double TGT_DUST 5000.0
+:const double TGT_INGOT 3200.0
+:const double BATCH 250.0
+
+:global int dw_run
+:global int dw_fac_gen
+:global int dw_fac_state
+:global int dw_fac_tier
+:global double dw_fac_need
+:global int dw_fac_err
+:global double dw_fac_err_until
+:global string dw_fac_task
+:global string dw_fac_fail
+
+:local int t
+:local int my_gen
+:local double need
+
+wakeup()
+
+start:
+my_gen = dw_fac_gen
+t = if(t < 1, 1, if(t > MAX_TIER, 1, t))
+
+loop:
+gotoif(end, my_gen != dw_fac_gen || dw_run == 0)
+dw_fac_tier = t
+
+gotoif(do_dust, count("dust", t) < TGT_DUST)
+gotoif(do_ingot, count("ingot", t) < TGT_INGOT)
+goto(next_tier)
+
+next_tier:
+t = if(t >= MAX_TIER, 1, t + 1)
+waitframe()
+goto(loop)
+
+do_dust:
+dw_fac_state = 111
+dw_fac_task = "Making dust via Crusher"
+dw_fac_fail = "Crusher busy"
+gotoif(busy, active("crusher"))
+need = min(BATCH, TGT_DUST - count("dust", t))
+need = min(need, count("ore", t))
+dw_fac_need = need
+dw_fac_fail = "Need ore"
+gotoif(no_input, need <= 0.)
+dw_fac_err = 0
+dw_fac_fail = ""
+produce("ore", t, need, "crusher")
+goto(next_tier)
+
+do_ingot:
+dw_fac_state = 121
+dw_fac_task = "Making ingots via Oven"
+dw_fac_fail = "Oven busy"
+gotoif(busy, active("oven"))
+need = min(BATCH, TGT_INGOT - count("ingot", t))
+need = min(need, count("dust", t))
+dw_fac_need = need
+dw_fac_fail = "Need dust"
+gotoif(no_input, need <= 0.)
+dw_fac_err = 0
+dw_fac_fail = ""
+produce("dust", t, need, "oven")
+goto(next_tier)
+
+busy:
+dw_fac_err = 1
+dw_fac_err_until = now() + 10000000.
+goto(next_tier)
+
+no_input:
+dw_fac_err = 2
+dw_fac_err_until = now() + 10000000.
+goto(next_tier)
+
+end:

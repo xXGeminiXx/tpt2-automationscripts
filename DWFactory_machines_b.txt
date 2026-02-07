@@ -1,0 +1,87 @@
+:name DW.Factory:machines_b
+:budget_cap max
+
+; Build machine items set B across tiers.
+
+:const int MAX_TIER 10
+
+:global int dw_run
+:global int dw_fac_gen
+:global int dw_fac_state
+:global int dw_fac_tier
+:global double dw_fac_need
+:global string dw_fac_task
+:global int dw_fac_err
+:global string dw_fac_fail
+
+:local int t
+:local int my_gen
+
+wakeup()
+
+start:
+my_gen = dw_fac_gen
+t = if(t < 1, 1, if(t > MAX_TIER, 1, t))
+
+loop:
+gotoif(end, my_gen != dw_fac_gen || dw_run == 0)
+dw_fac_tier = t
+
+gotoif(do_ct, count("machine.cutter", t) < 1.0)
+gotoif(do_sh, count("machine.shaper", t) < 1.0)
+gotoif(do_mx, count("machine.mixer", t) < 1.0)
+gotoif(do_bl, count("machine.boiler", t) < 1.0)
+gotoif(do_tb, count("machine.transportbelt", t) < 1.0)
+goto(next_tier)
+
+next_tier:
+t = if(t >= MAX_TIER, 1, t + 1)
+waitframe()
+goto(loop)
+
+do_ct:
+dw_fac_state = 611
+dw_fac_task = "Crafting machine: Cutter"
+dw_fac_need = 1.0 - count("machine.cutter", t)
+dw_fac_err = 0
+dw_fac_fail = ""
+craft("machine.cutter", t, 1.0)
+goto(next_tier)
+
+do_sh:
+dw_fac_state = 621
+dw_fac_task = "Crafting machine: Shaper"
+dw_fac_need = 1.0 - count("machine.shaper", t)
+dw_fac_err = 0
+dw_fac_fail = ""
+craft("machine.shaper", t, 1.0)
+goto(next_tier)
+
+do_mx:
+dw_fac_state = 631
+dw_fac_task = "Crafting machine: Mixer"
+dw_fac_need = 1.0 - count("machine.mixer", t)
+dw_fac_err = 0
+dw_fac_fail = ""
+craft("machine.mixer", t, 1.0)
+goto(next_tier)
+
+do_bl:
+dw_fac_state = 641
+dw_fac_task = "Crafting machine: Boiler"
+dw_fac_need = 1.0 - count("machine.boiler", t)
+dw_fac_err = 0
+dw_fac_fail = ""
+craft("machine.boiler", t, 1.0)
+goto(next_tier)
+
+do_tb:
+dw_fac_state = 651
+dw_fac_task = "Crafting machine: Transport Belt"
+dw_fac_need = 1.0 - count("machine.transportbelt", t)
+dw_fac_err = 0
+dw_fac_fail = ""
+craft("machine.transportbelt", t, 1.0)
+goto(next_tier)
+
+end:

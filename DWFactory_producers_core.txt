@@ -1,0 +1,67 @@
+:name DW.Factory:producers_core
+:budget_cap max
+
+; Producer set A: shipyard + statue of cubos.
+
+:const int MAX_TIER 10
+
+:global int dw_run
+:global int dw_fac_gen
+:global int dw_fac_state
+:global int dw_fac_tier
+:global double dw_fac_need
+:global int dw_fac_err
+:global double dw_fac_err_until
+:global string dw_fac_task
+:global string dw_fac_fail
+
+:local int t
+:local int my_gen
+
+wakeup()
+
+start:
+my_gen = dw_fac_gen
+t = if(t < 1, 1, if(t > MAX_TIER, 1, t))
+
+loop:
+gotoif(end, my_gen != dw_fac_gen || dw_run == 0)
+dw_fac_tier = t
+
+gotoif(do_shipyard, count("producer.shipyard", t) < 1.0)
+gotoif(do_cubos, count("producer.statueofcubos", t) < 1.0)
+goto(next_tier)
+
+next_tier:
+t = if(t >= MAX_TIER, 1, t + 1)
+waitframe()
+goto(loop)
+
+do_shipyard:
+dw_fac_state = 711
+dw_fac_task = "Crafting producer: Shipyard"
+dw_fac_need = 1.0 - count("producer.shipyard", t)
+dw_fac_fail = "Missing unlock/materials for producer.shipyard"
+dw_fac_err = 0
+craft("producer.shipyard", t, 1.0)
+gotoif(craft_fail, count("producer.shipyard", t) < 1.0)
+dw_fac_fail = ""
+goto(next_tier)
+
+do_cubos:
+dw_fac_state = 721
+dw_fac_task = "Crafting producer: Statue of Cubos"
+dw_fac_need = 1.0 - count("producer.statueofcubos", t)
+dw_fac_fail = "Missing unlock/materials for producer.statueofcubos"
+dw_fac_err = 0
+craft("producer.statueofcubos", t, 1.0)
+gotoif(craft_fail, count("producer.statueofcubos", t) < 1.0)
+dw_fac_fail = ""
+goto(next_tier)
+
+craft_fail:
+dw_fac_err = 3
+dw_fac_err_until = now() + 10000000.
+goto(next_tier)
+
+end:

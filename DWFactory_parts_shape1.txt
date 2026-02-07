@@ -1,0 +1,86 @@
+:name DW.Factory:parts_shape1
+:budget_cap max
+
+; Shape/cut chain: rod, screw.
+
+:const int MAX_TIER 10
+:const double TGT_ROD 1000.0
+:const double TGT_SCREW 1400.0
+
+:global int dw_run
+:global int dw_fac_gen
+:global int dw_fac_state
+:global int dw_fac_tier
+:global double dw_fac_need
+:global int dw_fac_err
+:global double dw_fac_err_until
+:global string dw_fac_task
+:global string dw_fac_fail
+
+:local int t
+:local int my_gen
+:local double need
+:local double src
+
+wakeup()
+
+start:
+my_gen = dw_fac_gen
+t = if(t < 1, 1, if(t > MAX_TIER, 1, t))
+
+loop:
+gotoif(end, my_gen != dw_fac_gen || dw_run == 0)
+dw_fac_tier = t
+
+gotoif(do_rod, count("rod", t) < TGT_ROD)
+gotoif(do_screw, count("screw", t) < TGT_SCREW)
+goto(next_tier)
+
+next_tier:
+t = if(t >= MAX_TIER, 1, t + 1)
+waitframe()
+goto(loop)
+
+do_rod:
+dw_fac_state = 331
+dw_fac_task = "Making rods via Shaper"
+dw_fac_fail = "Shaper busy"
+gotoif(busy, active("shaper"))
+need = min(220.0, TGT_ROD - count("rod", t))
+need = min(need, 2.0 * count("ingot", t))
+src = ceil(need / 2.0)
+dw_fac_need = src
+dw_fac_fail = "Need ingots"
+gotoif(no_input, src <= 0.)
+dw_fac_err = 0
+dw_fac_fail = ""
+produce("ingot", t, src, "shaper")
+goto(next_tier)
+
+do_screw:
+dw_fac_state = 341
+dw_fac_task = "Making screws via Cutter"
+dw_fac_fail = "Cutter busy"
+gotoif(busy, active("cutter"))
+need = min(240.0, TGT_SCREW - count("screw", t))
+need = min(need, 4.0 * count("rod", t))
+src = ceil(need / 4.0)
+dw_fac_need = src
+dw_fac_fail = "Need rods"
+gotoif(no_input, src <= 0.)
+dw_fac_err = 0
+dw_fac_fail = ""
+produce("rod", t, src, "cutter")
+goto(next_tier)
+
+busy:
+dw_fac_err = 1
+dw_fac_err_until = now() + 10000000.
+goto(next_tier)
+
+no_input:
+dw_fac_err = 2
+dw_fac_err_until = now() + 10000000.
+goto(next_tier)
+
+end:

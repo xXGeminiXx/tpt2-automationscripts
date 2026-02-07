@@ -1,0 +1,111 @@
+:name DW.Factory:debug
+:budget_cap max
+
+; Human-readable status + raw debug feed.
+; Globals to watch:
+; - dw_fac_human (friendly)
+; - dw_fac_debug (raw)
+
+:global int dw_run
+:global int dw_fac_gen
+:global int dw_fac_heartbeat
+:global int dw_fac_state
+:global int dw_fac_tier
+:global double dw_fac_need
+:global int dw_fac_err
+:global double dw_fac_err_until
+:global string dw_fac_task
+:global string dw_fac_fail
+:global string dw_fac_human
+:global string dw_fac_debug
+
+:local int my_gen
+:local int tt
+:local int stuck
+:local int hb_stuck
+:local int prev_state
+:local int prev_tier
+:local int hb_prev
+:local double prev_need
+:local string prev_task
+
+wakeup()
+
+start:
+my_gen = dw_fac_gen
+
+loop:
+gotoif(end, my_gen != dw_fac_gen)
+
+tt = if(dw_fac_tier < 1, 1, if(dw_fac_tier > 10, 10, dw_fac_tier))
+
+gotoif(inc_hb_stuck, dw_run == 1 && dw_fac_heartbeat == hb_prev)
+hb_stuck = 0
+goto(hb_done)
+inc_hb_stuck:
+hb_stuck += 1
+hb_done:
+hb_prev = dw_fac_heartbeat
+
+gotoif(inc_stuck, dw_run == 1 && dw_fac_state == prev_state && dw_fac_tier == prev_tier && dw_fac_need == prev_need && dw_fac_task == prev_task && dw_fac_need > 0.)
+stuck = 0
+goto(stuck_done)
+inc_stuck:
+stuck += 1
+stuck_done:
+prev_state = dw_fac_state
+prev_tier = dw_fac_tier
+prev_need = dw_fac_need
+prev_task = dw_fac_task
+
+dw_fac_human = if(\
+  dw_run == 0,\
+  "<color=#aaa>Factory Auto OFF (press F)</color>",\
+  if(\
+    hb_stuck > 120,\
+    "<color=#f44>Controller heartbeat stalled. Restart with F.</color>",\
+    if(\
+      now() < dw_fac_err_until && dw_fac_fail != "",\
+      "<color=#f44>" . dw_fac_fail . " | Next: " . dw_fac_task . " (T" . dw_fac_tier . ")</color>",\
+      if(\
+        stuck > 180 && dw_fac_need > 0.,\
+        "<color=#f44>Stalled: " . dw_fac_task . " (T" . dw_fac_tier . "). Missing machine/unlock/materials. Skipping and retrying.</color>",\
+        "<color=#3f3>" . dw_fac_task . " (T" . dw_fac_tier . ", need " . round(dw_fac_need) . ")</color>"\
+      )\
+    )\
+  )\
+)
+
+dw_fac_debug = "run=" . dw_run .\
+  " gen=" . dw_fac_gen .\
+  " hb=" . dw_fac_heartbeat .\
+  " st=" . dw_fac_state .\
+  " t=" . dw_fac_tier .\
+  " need=" . dw_fac_need .\
+  " err=" . dw_fac_err .\
+  " |ov=" . if(active("oven"), 1, 0) .\
+  " cr=" . if(active("crusher"), 1, 0) .\
+  " pr=" . if(active("presser"), 1, 0) .\
+  " rf=" . if(active("refinery"), 1, 0) .\
+  " as=" . if(active("assembler"), 1, 0) .\
+  " ct=" . if(active("cutter"), 1, 0) .\
+  " sh=" . if(active("shaper"), 1, 0) .\
+  " bo=" . if(active("boiler"), 1, 0) .\
+  " |ore=" . count("ore", tt) .\
+  " du=" . count("dust", tt) .\
+  " in=" . count("ingot", tt) .\
+  " pl=" . count("plate", tt) .\
+  " cab=" . count("cable", tt) .\
+  " cir=" . count("circuit", tt) .\
+  " stk=" . count("plate.stack", tt) .\
+  " dpl=" . count("plate.dense", tt) .\
+  " pg=" . count("producer.gems", tt) .\
+  " px=" . count("producer.exoticgems", tt) .\
+  " |stall=" . stuck .\
+  " hb_stall=" . hb_stuck
+
+waitframe()
+gotoif(loop, dw_run == 1)
+
+end:
+dw_fac_human = "<color=#aaa>Factory Auto OFF (press F)</color>"

@@ -1,0 +1,83 @@
+:name DW.Factory:parts_shape2
+:budget_cap max
+
+; Shape chain: pipe, ring.
+
+:const int MAX_TIER 10
+:const double TGT_PIPE 800.0
+:const double TGT_RING 800.0
+
+:global int dw_run
+:global int dw_fac_gen
+:global int dw_fac_state
+:global int dw_fac_tier
+:global double dw_fac_need
+:global int dw_fac_err
+:global double dw_fac_err_until
+:global string dw_fac_task
+:global string dw_fac_fail
+
+:local int t
+:local int my_gen
+:local double need
+
+wakeup()
+
+start:
+my_gen = dw_fac_gen
+t = if(t < 1, 1, if(t > MAX_TIER, 1, t))
+
+loop:
+gotoif(end, my_gen != dw_fac_gen || dw_run == 0)
+dw_fac_tier = t
+
+gotoif(do_pipe, count("pipe", t) < TGT_PIPE)
+gotoif(do_ring, count("ring", t) < TGT_RING)
+goto(next_tier)
+
+next_tier:
+t = if(t >= MAX_TIER, 1, t + 1)
+waitframe()
+goto(loop)
+
+do_pipe:
+dw_fac_state = 351
+dw_fac_task = "Making pipes via Shaper"
+dw_fac_fail = "Shaper busy"
+gotoif(busy, active("shaper"))
+need = min(150.0, TGT_PIPE - count("pipe", t))
+need = min(need, count("plate", t))
+dw_fac_need = need
+dw_fac_fail = "Need plates"
+gotoif(no_input, need <= 0.)
+dw_fac_err = 0
+dw_fac_fail = ""
+produce("plate", t, need, "shaper")
+goto(next_tier)
+
+do_ring:
+dw_fac_state = 361
+dw_fac_task = "Making rings via Shaper"
+dw_fac_fail = "Shaper busy"
+gotoif(busy, active("shaper"))
+need = min(150.0, TGT_RING - count("ring", t))
+need = min(need, count("rod", t))
+dw_fac_need = need
+dw_fac_fail = "Need rods"
+gotoif(no_input, need <= 0.)
+dw_fac_err = 0
+dw_fac_fail = ""
+produce("rod", t, need, "shaper")
+goto(next_tier)
+
+busy:
+dw_fac_err = 1
+dw_fac_err_until = now() + 10000000.
+goto(next_tier)
+
+no_input:
+dw_fac_err = 2
+dw_fac_err_until = now() + 10000000.
+goto(next_tier)
+
+end:

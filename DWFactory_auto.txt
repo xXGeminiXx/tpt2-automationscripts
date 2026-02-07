@@ -1,0 +1,66 @@
+:name DW.Factory:auto
+:budget_cap max
+
+; Master toggle/launcher.
+; Press F once to run, press F again to stop.
+
+:global int dw_run
+:global int dw_fac_gen
+:global int dw_fac_heartbeat
+:global int dw_fac_state
+:global int dw_fac_tier
+:global double dw_fac_need
+:global int dw_fac_err
+:global double dw_fac_err_until
+:global string dw_fac_task
+:global string dw_fac_fail
+:global string dw_fac_human
+:global string dw_fac_debug
+
+wakeup()
+key.f()
+
+start:
+gotoif(on_f, contains(impulse(), "key.f"))
+gotoif(on_wakeup, contains(impulse(), "wakeup"))
+goto(end)
+
+on_f:
+dw_run = 1 - dw_run
+dw_fac_gen += 1
+dw_fac_heartbeat = 0
+dw_fac_state = if(dw_run == 1, 1, 0)
+dw_fac_tier = 1
+dw_fac_need = 0.
+dw_fac_err = 0
+dw_fac_err_until = 0.
+dw_fac_task = if(dw_run == 1, "Starting workers", "Paused")
+dw_fac_fail = ""
+gotoif(start_workers, dw_run == 1)
+dw_fac_human = "<color=#aaa>Factory Auto OFF (press F)</color>"
+dw_fac_debug = "run=0"
+goto(end)
+
+on_wakeup:
+gotoif(start_workers, dw_run == 1)
+goto(end)
+
+start_workers:
+execute("DW.Factory:controller")
+execute("DW.Factory:base")
+execute("DW.Factory:base_plate")
+execute("DW.Factory:parts_stack")
+execute("DW.Factory:parts_refine")
+execute("DW.Factory:parts_board")
+execute("DW.Factory:parts_circuit")
+execute("DW.Factory:parts_shape1")
+execute("DW.Factory:parts_shape2")
+execute("DW.Factory:parts_block")
+execute("DW.Factory:machines_a")
+execute("DW.Factory:machines_b")
+execute("DW.Factory:producers_core")
+execute("DW.Factory:producers_gems")
+execute("DW.Factory:debug")
+goto(end)
+
+end:

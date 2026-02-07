@@ -1,0 +1,80 @@
+:name DW.Factory:parts_stack
+:budget_cap max
+
+; Stacked and dense plates.
+
+:const int MAX_TIER 10
+:const double TGT_STACK 900.0
+:const double TGT_DENSE 700.0
+
+:global int dw_run
+:global int dw_fac_gen
+:global int dw_fac_state
+:global int dw_fac_tier
+:global double dw_fac_need
+:global int dw_fac_err
+:global double dw_fac_err_until
+:global string dw_fac_task
+:global string dw_fac_fail
+
+:local int t
+:local int my_gen
+:local double need
+
+wakeup()
+
+start:
+my_gen = dw_fac_gen
+t = if(t < 1, 1, if(t > MAX_TIER, 1, t))
+
+loop:
+gotoif(end, my_gen != dw_fac_gen || dw_run == 0)
+dw_fac_tier = t
+
+gotoif(do_stack, count("plate.stack", t) < TGT_STACK)
+gotoif(do_dense, count("plate.dense", t) < TGT_DENSE)
+goto(next_tier)
+
+next_tier:
+t = if(t >= MAX_TIER, 1, t + 1)
+waitframe()
+goto(loop)
+
+do_stack:
+dw_fac_state = 211
+dw_fac_task = "Crafting stacked plates"
+need = min(120.0, TGT_STACK - count("plate.stack", t))
+dw_fac_need = need
+dw_fac_fail = "Need base plates"
+gotoif(no_input, need <= 0.)
+dw_fac_err = 0
+dw_fac_fail = ""
+craft("plate.stack", t, need)
+goto(next_tier)
+
+do_dense:
+dw_fac_state = 221
+dw_fac_task = "Making dense plates via Presser"
+dw_fac_fail = "Presser busy"
+gotoif(busy, active("presser"))
+need = min(120.0, TGT_DENSE - count("plate.dense", t))
+need = min(need, count("plate.stack", t))
+dw_fac_need = need
+dw_fac_fail = "Need stacked plates"
+gotoif(no_input, need <= 0.)
+dw_fac_err = 0
+dw_fac_fail = ""
+produce("plate.stack", t, need, "presser")
+goto(next_tier)
+
+busy:
+dw_fac_err = 1
+dw_fac_err_until = now() + 10000000.
+goto(next_tier)
+
+no_input:
+dw_fac_err = 2
+dw_fac_err_until = now() + 10000000.
+goto(next_tier)
+
+end:

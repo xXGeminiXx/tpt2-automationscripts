@@ -1,0 +1,87 @@
+:name DW.Factory:machines_a
+:budget_cap max
+
+; Build machine items set A across tiers.
+
+:const int MAX_TIER 10
+
+:global int dw_run
+:global int dw_fac_gen
+:global int dw_fac_state
+:global int dw_fac_tier
+:global double dw_fac_need
+:global string dw_fac_task
+:global int dw_fac_err
+:global string dw_fac_fail
+
+:local int t
+:local int my_gen
+
+wakeup()
+
+start:
+my_gen = dw_fac_gen
+t = if(t < 1, 1, if(t > MAX_TIER, 1, t))
+
+loop:
+gotoif(end, my_gen != dw_fac_gen || dw_run == 0)
+dw_fac_tier = t
+
+gotoif(do_ov, count("machine.oven", t) < 1.0)
+gotoif(do_cr, count("machine.crusher", t) < 1.0)
+gotoif(do_pr, count("machine.presser", t) < 1.0)
+gotoif(do_rf, count("machine.refinery", t) < 1.0)
+gotoif(do_as, count("machine.assembler", t) < 1.0)
+goto(next_tier)
+
+next_tier:
+t = if(t >= MAX_TIER, 1, t + 1)
+waitframe()
+goto(loop)
+
+do_ov:
+dw_fac_state = 511
+dw_fac_task = "Crafting machine: Oven"
+dw_fac_need = 1.0 - count("machine.oven", t)
+dw_fac_err = 0
+dw_fac_fail = ""
+craft("machine.oven", t, 1.0)
+goto(next_tier)
+
+do_cr:
+dw_fac_state = 521
+dw_fac_task = "Crafting machine: Crusher"
+dw_fac_need = 1.0 - count("machine.crusher", t)
+dw_fac_err = 0
+dw_fac_fail = ""
+craft("machine.crusher", t, 1.0)
+goto(next_tier)
+
+do_pr:
+dw_fac_state = 531
+dw_fac_task = "Crafting machine: Presser"
+dw_fac_need = 1.0 - count("machine.presser", t)
+dw_fac_err = 0
+dw_fac_fail = ""
+craft("machine.presser", t, 1.0)
+goto(next_tier)
+
+do_rf:
+dw_fac_state = 541
+dw_fac_task = "Crafting machine: Refinery"
+dw_fac_need = 1.0 - count("machine.refinery", t)
+dw_fac_err = 0
+dw_fac_fail = ""
+craft("machine.refinery", t, 1.0)
+goto(next_tier)
+
+do_as:
+dw_fac_state = 551
+dw_fac_task = "Crafting machine: Assembler"
+dw_fac_need = 1.0 - count("machine.assembler", t)
+dw_fac_err = 0
+dw_fac_fail = ""
+craft("machine.assembler", t, 1.0)
+goto(next_tier)
+
+end:
