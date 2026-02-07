@@ -60,6 +60,8 @@ execute("DW.Factory:machines_a")
 execute("DW.Factory:machines_b")
 execute("DW.Factory:producers_core")
 execute("DW.Factory:producers_gems")
+execute("DW.Factory:shop")
+execute("DW.Factory:shop_buy")
 execute("DW.Factory:debug")
 goto(end)
 

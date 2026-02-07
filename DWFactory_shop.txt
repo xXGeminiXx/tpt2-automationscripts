@@ -1,0 +1,61 @@
+:name DW.Factory:shop
+:budget_cap max
+
+; Auto-purchase additional Factory shop crafts (producers/boosters).
+; Conservative policy: keep 1 of each per tier.
+
+:const int MAX_TIER 10
+:const int ITEM_COUNT 16
+
+:global int dw_run
+:global int dw_fac_gen
+:global int dw_fac_state
+:global int dw_fac_tier
+:global double dw_fac_need
+:global int dw_fac_err
+:global double dw_fac_err_until
+:global string dw_fac_task
+:global string dw_fac_fail
+
+:local int t
+:local int i
+:local int my_gen
+:local string item
+:local double before
+
+wakeup()
+
+start:
+my_gen = dw_fac_gen
+t = if(t < 1, 1, if(t > MAX_TIER, 1, t))
+i = if(i < 1, 1, if(i > ITEM_COUNT, 1, i))
+
+loop:
+gotoif(end, my_gen != dw_fac_gen || dw_run == 0)
+dw_fac_tier = t
+dw_fac_state = 650 + i
+
+item = if(i == 1, "producer.town", if(i == 2, "producer.workshop", if(i == 3, "producer.laboratory", if(i == 4, "producer.constructionFirm", if(i == 5, "producer.mine", if(i == 6, "producer.powerplant", if(i == 7, "producer.arcade", if(i == 8, "producer.headquarters", if(i == 9, "producer.tradingpost", if(i == 10, "producer.museum", if(i == 11, "producer.factory", if(i == 12, "booster.acceleration", if(i == 13, "booster.machines", if(i == 14, "booster.production.regular", if(i == 15, "booster.resource.drops", "booster.trees")))))))))))))))
+before = count(item, t)
+dw_fac_task = "Shop craft: " . item
+dw_fac_need = 1.0 - before
+gotoif(next_item, before >= 1.0)
+
+dw_fac_fail = "Missing unlock/materials for " . item
+craft(item, t, 1.0)
+gotoif(craft_fail, count(item, t) <= before)
+dw_fac_err = 0
+dw_fac_fail = ""
+goto(next_item)
+
+craft_fail:
+dw_fac_err = 3
+dw_fac_err_until = now() + 10000000.
+
+next_item:
+i = if(i >= ITEM_COUNT, 1, i + 1)
+t = if(i == 1, if(t >= MAX_TIER, 1, t + 1), t)
+waitframe()
+goto(loop)
+
+end:

@@ -1,0 +1,57 @@
+:name DW.Factory:shop_buy
+:budget_cap max
+
+; Best-effort Factory Shop UI buyer.
+; Runs only when shop crafts are failing due to missing unlocks.
+; It cycles categories + visible tiles and clicks buy targets.
+
+:global int dw_run
+:global int dw_fac_gen
+:global int dw_fac_err
+:global string dw_fac_task
+
+:local int my_gen
+:local int cat
+:local int slot
+:local int tick
+:local int row
+:local int col
+:local double x
+:local double y
+
+wakeup()
+
+start:
+my_gen = dw_fac_gen
+cat = if(cat < 1 || cat > 4, 1, cat)
+slot = if(slot < 0 || slot > 15, 0, slot)
+
+loop:
+gotoif(end, my_gen != dw_fac_gen || dw_run == 0)
+tick = (tick + 1) % 3
+gotoif(wait, tick != 0)
+gotoif(wait, isopen("factory") == false)
+gotoif(wait, dw_fac_err != 3 || contains(dw_fac_task, "Shop craft:") == false)
+
+; slot 0: select category tab (Machines/Parts/Chips/Producers)
+gotoif(buy_slot, slot > 0)
+click(vec(width.d() * if(cat == 1, 0.47, if(cat == 2, 0.605, if(cat == 3, 0.735, 0.865))), height.d() * 0.295))
+goto(next)
+
+buy_slot:
+; slots 1..15 map to a 5x3 grid of visible shop entries
+row = (slot - 1) % 5
+col = d2i(floor(i2d(slot - 1) / 5.))
+x = width.d() * (0.47 + 0.13 * i2d(col))
+y = height.d() * (0.215 + 0.091 * i2d(row))
+click(vec(x, y))
+
+next:
+slot = (slot + 1) % 16
+cat = if(slot == 0, if(cat >= 4, 1, cat + 1), cat)
+
+wait:
+waitframe()
+goto(loop)
+
+end:

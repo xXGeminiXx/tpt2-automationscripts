@@ -27,7 +27,12 @@
 :local int prev_tier
 :local int hb_prev
 :local double prev_need
+:local double prev_err_until
 :local string prev_task
+:local double show_until
+:local int show_tier
+:local string show_fail
+:local string show_task
 
 wakeup()
 
@@ -57,6 +62,15 @@ prev_state = dw_fac_state
 prev_tier = dw_fac_tier
 prev_need = dw_fac_need
 prev_task = dw_fac_task
+gotoif(latch_err, dw_fac_err > 0 && dw_fac_err_until > prev_err_until && dw_fac_fail != "")
+goto(latch_done)
+latch_err:
+show_fail = dw_fac_fail
+show_task = dw_fac_task
+show_tier = dw_fac_tier
+show_until = dw_fac_err_until + 40000000.
+latch_done:
+prev_err_until = dw_fac_err_until
 
 dw_fac_human = if(\
   dw_run == 0,\
@@ -65,8 +79,8 @@ dw_fac_human = if(\
     hb_stuck > 120,\
     "<color=#f44>Controller heartbeat stalled. Restart with F.</color>",\
     if(\
-      now() < dw_fac_err_until && dw_fac_fail != "",\
-      "<color=#f44>" . dw_fac_fail . " | Next: " . dw_fac_task . " (T" . dw_fac_tier . ")</color>",\
+      now() < show_until && show_fail != "",\
+      "<color=#f44>" . show_fail . " | Current: " . dw_fac_task . " (T" . dw_fac_tier . ") | Retry: " . show_task . " (T" . show_tier . ")</color>",\
       if(\
         stuck > 180 && dw_fac_need > 0.,\
         "<color=#f44>Stalled: " . dw_fac_task . " (T" . dw_fac_tier . "). Missing machine/unlock/materials. Skipping and retrying.</color>",\
